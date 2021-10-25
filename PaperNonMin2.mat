@@ -1,0 +1,297 @@
+clear all; 
+close all; 
+clc;
+
+
+%% Air Properties
+
+visc_air = 1.85e-5;
+rho_air = 1.2;
+U_in = 5;
+vu = visc_air/rho_air;
+
+
+%% Simulartion
+
+load('Velocity_f0.9.mat');
+
+Velocity1 = Velocity{1,1}(:,:,1);
+for j=1
+for i =1:1  
+    Ug{i,j}=Velocity{1,j}(:,:,:);
+
+end
+end
+
+
+
+ x=[0.4 0.45 0.49 0.55 0.6 0.65 0.7];
+
+Y= 0:0.05:5;
+Z = (-20:1.25:18.75)./20;
+[Yg,Zg] = meshgrid(Y,Z);
+
+
+for j=1
+for k= 1:798  
+     Um{1,j}(:,:,k) = mean(Ug{1,j}(:,:,k), 1, 'omitnan');               
+end
+end
+
+
+Ug1 = Ug{1,1}(:,:,1);
+
+Ug725 = Ug{1,1}(:,:,725);
+
+
+
+ for j=1
+  for k= 1:798
+      U_dist{1,j}(:,:,k)=(Ug{1,j}(:,:,k)-Um{1,j}(:,:,k))./5;
+%       V_dist{1,j}(:,:,k)=(Vg{1,j}(:,:,k)-Vm{1,j}(:,:,k))./5;
+%       W_dist{1,j}(:,:,k)=(Wg{1,j}(:,:,k)-Wm{1,j}(:,:,k))./5;
+    end
+ end
+ 
+ 
+%% Decomposition 
+mz1=2;
+for i =1
+for j =1:798
+   [Xmd1, Ymd1, zmf1{1,i}(:,:,j)] = modal_decomposition(Zg',Yg',U_dist{1,i}(:,:,j)', mz1, 32);
+end
+end 
+
+mz2=4
+for i =1
+for j =1:798
+   [Xmd1, Ymd1, zmf2{1,i}(:,:,j)] = modal_decomposition(Zg',Yg',U_dist{1,i}(:,:,j)', mz2, 32);
+end
+end 
+
+mz3=6
+for i =1
+for j =1:798
+   [Xmd1, Ymd1, zmf3{1,i}(:,:,j)] = modal_decomposition(Zg',Yg',U_dist{1,i}(:,:,j)', mz3, 32);
+end
+end 
+
+
+  for i= 1  
+   d{1,i}(:,:)=U_dist{1,i}(18,17,:);    
+   md1{1,i}(:,:)=zmf1{1,i}(18,17,:)% - zmf1{1,i}(18,17,1) ;
+   md116{1,i}(:,:)=zmf1{1,i}(16,17,:) - zmf1{1,i}(16,17,1) ;
+   md120{1,i}(:,:)=zmf1{1,i}(20,17,:) - zmf1{1,i}(20,17,1) ;
+   md2{1,i}(:,:)=zmf2{1,i}(18,17,:) - zmf2{1,i}(18,17,1) ;
+   md3{1,i}(:,:)=zmf3{1,i}(18,17,:) - zmf3{1,i}(18,17,1) ;
+  end
+
+timesim=0:0.0004:749*0.0004;
+
+%% Experiment
+
+Z = (-20:1.25:18.75)/20;   
+Y= 0:0.05:5;
+[Yg Zg]=meshgrid(Y,Z);
+
+exp =[1 2 4 6];
+for i=2    
+   Data{i}=load(sprintf('data_array_%d.mat',exp(i)));
+    for j=1:600
+    Uexp{1,i}(:,:,j)=Data{1,i}.Qp_nd(:,:,j);
+    Yexp{1,i}(:,:)=Data{1,i}.Y_interp_eta(:,:);
+    Ze{1,i}(:,:)=Data{1,i}.Z_interp(:,:);
+    end
+
+   Zexp{1,i}=Ze{1,i}(:,:)./20;
+end
+
+
+for i=2
+    for j=1:600
+    Uge{1,i}(:,:,j)=interp2(Zexp{1,i}(:,:),Yexp{1,i}(:,:),Uexp{1,i}(:,:,j),Zg',Yg');
+%      Uginverse{1,i}(:,:,j)= Ug{1,i}(:,:,j)';
+    end
+end
+
+clear Y Z Ze Yexp Uexp Data Zexp
+
+%% Decomposition
+
+
+mz=2;
+for i =2
+for j =1:600
+
+   [Xmd, Ymd, zmfe1{1,i}(:,:,j)] = modal_decomposition(Zg,Yg, Uge{1,i}(:,:,j), mz, 32);
+
+end
+end 
+
+mz2=4
+
+for i =2
+for j =1:600
+
+   [Xmd, Ymd, zmfe2{1,i}(:,:,j)] = modal_decomposition(Zg,Yg,Uge{1,i}(:,:,j), mz2, 32);
+
+end
+end 
+
+mz3=6
+
+for i =2
+for j =1:600
+
+   [Xmd, Ymd, zmfe3{1,i}(:,:,j)] = modal_decomposition(Zg,Yg,Uge{1,i}(:,:,j), mz3, 32);
+
+end
+end 
+clear mz mz2 mz3
+
+
+
+
+  for i= 2 
+%    de{1,i}(:,:)=Uge{1,i}(18,1,:);    
+   mde1{1,i}(:,:)=zmfe1{1,i}(18,1,:);
+%    mde2{1,i}(:,:)=zmfe2{1,i}(18,1,:);
+%    mde3{1,i}(:,:)=zmfe3{1,i}(18,1,:);
+   
+  end
+  
+
+  
+  for i= 2  
+%    de2{1,i}(:,:)=de{1,i}(:,:)-(mean(de{1,i}(1:100,:),1));   
+   mde11{1,i}(:,:)=mde1{1,i}(:,:)-(mean(mde1{1,i}(1:50,:),1));
+%    mde21{1,i}(:,:)=mde2{1,i}(:,:)-(mean(mde2{1,i}(1:100,:),1));
+%    mde31{1,i}(:,:)=mde3{1,i}(:,:)-(mean(mde3{1,i}(1:100,:),1));
+   
+  end
+timeexp=0.000:0.0005:0.3-0.0005;
+
+
+%% Plot 
+xx = 1:5;
+c2 = 0.0:((0.8-0.0)/(length(xx)-1)):0.8;
+c3 = [c2 fliplr(c2)]
+
+FS=25
+LS=1.5
+
+
+figACT = figure('Renderer','Painters','InvertHardcopy','off','Color',[1 1 1]);
+set(figACT,'Units','inches','Position',[2 3 3.25 2])
+ha = tight_subplot(1,1,[.2 .001],[0.2 0.07],[.15 .04]);
+
+axes(ha(1))
+
+
+%plot(timeexp,mde11{1,4},'-.','color',[c3(6) c3(6) 1],'linewidth',LS)
+%hold on
+%plot(timesim,md1{1,4}(25:774,1),'-','color',[c3(6) c3(6) 1],'linewidth',LS)
+
+LS = 2;
+
+plot(timeexp,mde11{1,2},'-.','color','r','linewidth',LS)
+hold on
+plot(timesim,md1{1,1}(25:774,1),'-','color',"k",'linewidth',LS)
+plot(timesim,md2{1,1}(25:774,1),'-','color',"k",'linewidth',LS)
+plot(timesim,md3{1,1}(25:774,1),'-','color',"k",'linewidth',LS)
+
+plot(timesim,md116{1,1}(25:774,1),':','color',"g",'linewidth',LS)
+plot(timesim,md120{1,1}(25:774,1),':','color',"b",'linewidth',LS)
+%{
+plot(timeexp,mde11{1,2},'-.','color',[c3(9) c3(9) 1],'linewidth',LS)
+plot(timesim,md1{1,2}(25:774,1),'-','color',[c3(9) c3(9) 1],'linewidth',LS)
+
+
+plot(timeexp,mde11{1,1},'-.','color',[0 0 0],'linewidth',LS)
+plot(timesim,md1{1,1}(25:774,1),'-','color',[0 0 0],'linewidth',LS)
+
+%}
+
+box off 
+
+xlim([0 0.3])
+ylim([-0.08 0.02])
+
+x1 = xlabel('time (s)', 'interpreter', 'latex','rotation',0)
+set(x1, 'position', get(x1,'position')-[-0,0.0015,0]); 
+h_Ylabel = get(gca,'YLabel');
+set(h_Ylabel,'FontSize',FS);
+xticks([0 0.05 0.1 0.15 0.2  0.25 0.3])
+
+y1 = ylabel('$$\frac{U^\prime}{{U_\infty}}$$', 'interpreter', 'latex','rotation',0)
+set(y1, 'position', get(y1,'position')+[-0.0003,0.02,0]); 
+h_xlabel = get(gca,'YLabel');
+set(h_xlabel,'FontSize',FS); 
+yticks([-8 -6 -4 -2 0 2]*0.01)
+
+set(gca,'fontsize',FS)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+y1 = 0;
+y2=  -0.072;
+x1=0;
+x2=0.3;
+
+plot([x1; x2], [y1; y1],'k-', 'LineWidth',1)
+%plot([x1; x2], [y2; y2],'-k', 'LineWidth',LS)
+%{
+aa=annotation('textbox','String','400','FitBoxToText','on');
+set(aa,'Interpreter', 'latex','FontSize',FS, 'EdgeColor','none' )
+set(aa, 'position', [0.22 0.32 0.15 0.01])
+
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%{
+y1 = -0.069;
+y2=  -0.072;
+x1=0.07;
+x2=0.095;
+
+plot([x1; x2], [y1; y1],'-.','color',[c3(9) c3(9) 1], 'LineWidth',LS)
+plot([x1; x2], [y2; y2],'-','color',[c3(9) c3(9) 1], 'LineWidth',LS)
+
+aa=annotation('textbox','String','450','FitBoxToText','on');
+set(aa,'Interpreter', 'latex','FontSize',FS, 'EdgeColor','none' )
+set(aa, 'position', [0.41 0.32 0.15 0.01])
+
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%{
+y1 = -0.069;
+y2=  -0.072;
+x1=0.145;
+x2=0.17;
+
+plot([x1; x2], [y1; y1],'-.','color',[c3(8) c3(8) 1], 'LineWidth',LS)
+plot([x1; x2], [y2; y2],'-','color',[c3(8) c3(8) 1], 'LineWidth',LS)
+
+aa=annotation('textbox','String','550','FitBoxToText','on');
+set(aa,'Interpreter', 'latex','FontSize',FS, 'EdgeColor','none' )
+set(aa, 'position', [0.6 0.32 0.15 0.01])
+
+%}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%{
+y1 = -0.069;
+y2=  -0.072;
+x1=0.21;
+x2=0.235;
+
+plot([x1; x2], [y1; y1],'-.','color',[c3(7) c3(7) 1], 'LineWidth',LS)
+plot([x1; x2], [y2; y2],'-','color',[c3(7) c3(7) 1], 'LineWidth',LS)
+
+aa=annotation('textbox','String','650 mm','FitBoxToText','on');
+set(aa,'Interpreter', 'latex','FontSize',FS, 'EdgeColor','none' )
+set(aa, 'position', [0.77 0.32 0.35 0.01])
+
+%}
